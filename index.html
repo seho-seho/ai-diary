@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>하루 기록</title>
+  <meta name="description" content="대화를 바탕으로 매일 질문을 만들어 주고, 일정을 캘린더에 기록하는 AI 일기장" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📔</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="brand">📔 하루 기록</h1>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="diary" role="tab">오늘의 일기</button>
+      <button class="tab" data-tab="chat" role="tab">대화</button>
+      <button class="tab" data-tab="calendar" role="tab">캘린더</button>
+    </nav>
+    <button class="icon-btn" id="openSettings" title="설정" aria-label="설정">⚙️</button>
+  </header>
+
+  <main>
+    <!-- 일기 -->
+    <section class="panel active" id="tab-diary">
+      <div class="date-nav">
+        <button class="ghost" id="prevDay" aria-label="이전 날">◀</button>
+        <h2 id="diaryDate"></h2>
+        <button class="ghost" id="nextDay" aria-label="다음 날">▶</button>
+        <button class="ghost small" id="goToday">오늘</button>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>오늘의 질문</h3>
+          <button class="ghost small" id="refreshQuestions">↻ 새 질문</button>
+        </div>
+        <p class="hint" id="questionsHint"></p>
+        <ol class="questions" id="questions"></ol>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>자유롭게 쓰기</h3>
+          <div class="moods" id="moods" role="radiogroup" aria-label="오늘의 기분">
+            <button data-mood="😄" title="아주 좋음">😄</button>
+            <button data-mood="🙂" title="좋음">🙂</button>
+            <button data-mood="😐" title="보통">😐</button>
+            <button data-mood="😔" title="우울">😔</button>
+            <button data-mood="😣" title="힘듦">😣</button>
+          </div>
+        </div>
+        <textarea id="diaryText" class="paper" rows="10" placeholder="오늘 있었던 일, 느낀 점, 앞으로의 계획을 적어 보세요…"></textarea>
+        <div class="row end">
+          <span class="saved" id="savedState"></span>
+          <button class="primary" id="saveDiary">저장하고 일정 찾기</button>
+        </div>
+        <div id="diaryResult"></div>
+      </div>
+    </section>
+
+    <!-- 대화 -->
+    <section class="panel" id="tab-chat">
+      <div class="chat-wrap">
+        <div class="chat-head">
+          <h2 id="chatDate"></h2>
+          <button class="ghost small" id="importConv">📋 다른 대화 붙여넣기</button>
+        </div>
+        <div class="messages" id="messages"></div>
+        <form class="composer" id="chatForm">
+          <textarea id="chatInput" rows="2" placeholder="오늘 하루 어땠어요? (Enter 전송, Shift+Enter 줄바꿈)"></textarea>
+          <button class="primary" type="submit" id="sendBtn">보내기</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 캘린더 -->
+    <section class="panel" id="tab-calendar">
+      <div class="cal-layout">
+        <div class="card cal-card">
+          <div class="date-nav">
+            <button class="ghost" id="prevMonth" aria-label="이전 달">◀</button>
+            <h2 id="monthLabel"></h2>
+            <button class="ghost" id="nextMonth" aria-label="다음 달">▶</button>
+            <button class="ghost small" id="thisMonth">이번 달</button>
+          </div>
+          <div class="cal-grid head">
+            <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+          <div class="row end wrap">
+            <button class="ghost small" id="exportIcs">📤 .ics 내보내기 (구글·아웃룩)</button>
+          </div>
+        </div>
+
+        <aside class="card day-card">
+          <h3 id="dayLabel"></h3>
+          <ul class="event-list" id="dayEvents"></ul>
+          <button class="ghost small" id="openDayDiary">📔 이 날 일기 보기</button>
+          <form class="event-form" id="eventForm">
+            <h4>일정 추가</h4>
+            <input id="evTitle" placeholder="제목" required />
+            <input id="evDate" type="date" required />
+            <div class="row">
+              <label class="time-field">시작<input id="evTime" type="time" /></label>
+              <label class="time-field">종료<input id="evEnd" type="time" /></label>
+            </div>
+            <input id="evNote" placeholder="메모 (선택)" />
+            <button class="primary" type="submit">추가</button>
+          </form>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <!-- 설정 -->
+  <dialog id="settingsDialog">
+    <form method="dialog" class="dialog-body" id="settingsForm">
+      <h3>설정</h3>
+      <label>Claude API 키
+        <input id="apiKey" type="password" autocomplete="off" placeholder="sk-ant-..." />
+      </label>
+      <p class="hint">키는 이 브라우저(localStorage)에만 저장되고 Anthropic API로만 전송됩니다. 공용 컴퓨터에서는 사용 후 지워 주세요.</p>
+      <label>모델
+        <select id="model">
+          <option value="claude-opus-5-5">Claude Opus 5.5 (기본)</option>
+          <option value="claude-sonnet-5-5">Claude Sonnet 5.5</option>
+          <option value="claude-haiku-5-5">Claude Haiku 5.5 (가장 저렴)</option>
+        </select>
+      </label>
+      <label class="check"><input id="autoAdd" type="checkbox" /> 찾은 일정을 캘린더에 바로 추가</label>
+      <hr />
+      <h4>백업</h4>
+      <p class="hint">일기는 이 브라우저에만 저장됩니다. 다른 기기로 옮기거나 보관하려면 백업 파일을 받아 두세요.</p>
+      <div class="row wrap">
+        <button type="button" class="ghost small" id="exportJson">💾 백업 받기</button>
+        <label class="ghost small file-btn">📂 백업 불러오기<input type="file" id="importJson" accept="application/json" hidden /></label>
+      </div>
+      <div class="row end">
+        <button value="cancel" class="ghost">닫기</button>
+        <button value="save" class="primary" id="saveSettings">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- 대화 붙여넣기 -->
+  <dialog id="importDialog">
+    <form method="dialog" class="dialog-body">
+      <h3>다른 대화 붙여넣기</h3>
+      <p class="hint">카톡, 메신저, 다른 AI와 나눈 대화를 붙여넣으면 그 내용을 바탕으로 일정을 찾고 질문에 반영합니다.</p>
+      <textarea id="importText" rows="10" placeholder="대화 내용을 붙여넣으세요"></textarea>
+      <div class="row end">
+        <button value="cancel" class="ghost">취소</button>
+        <button value="ok" class="primary">가져오기</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
